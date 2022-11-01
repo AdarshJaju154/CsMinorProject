@@ -55,15 +55,15 @@ void printDir()
 }
   
 // Function where the system command is executed
-void execArgs(char** parsed)
+int execArgs(char** parsed)
 {
-    // Forking a child
     pid_t pid = fork(); 
   
     if (pid == -1) {
         printf("\nFailed forking child..");
         return;
     } else if (pid == 0) {
+        printf("child success %d %d", getpid(), getppid());
         if (execvp(parsed[0], parsed) < 0) {
             printf("\nCould not execute command..");
         }
@@ -95,6 +95,7 @@ void execArgsPiped(char** parsed, char** parsedpipe)
     if (p1 == 0) {
         // Child 1 executing..
         // It only needs to write at the write end
+        printf("%d \n", getpid());
         close(pipefd[0]);
         dup2(pipefd[1], STDOUT_FILENO);
         close(pipefd[1]);
@@ -115,6 +116,7 @@ void execArgsPiped(char** parsed, char** parsedpipe)
         // Child 2 executing..
         // It only needs to read at the read end
         if (p2 == 0) {
+            printf("%d \n", getpid());
             close(pipefd[1]);
             dup2(pipefd[0], STDIN_FILENO);
             close(pipefd[0]);
@@ -126,6 +128,7 @@ void execArgsPiped(char** parsed, char** parsedpipe)
             // parent executing, waiting for two children
             wait(NULL);
             wait(NULL);
+            return;
         }
     }
 }
@@ -247,7 +250,7 @@ int processString(char* str, char** parsed, char** parsedpipe)
   
 int main()
 {
-    char inputString[MAXCOM], *parsedArgs[MAXLIST];
+    char inputString[MAXCOM], *parsedArgs[MAXLIST]={};
     char* parsedArgsPiped[MAXLIST];
     int execFlag = 0;
     init_shell();
@@ -269,7 +272,8 @@ int main()
         // execute
         if (execFlag == 1)
             execArgs(parsedArgs);
-  
+        if(execFlag==0 )
+            execArgs(parsedArgs);
         if (execFlag == 2)
             execArgsPiped(parsedArgs, parsedArgsPiped);
     }
