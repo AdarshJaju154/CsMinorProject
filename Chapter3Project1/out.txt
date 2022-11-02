@@ -1,0 +1,4 @@
+a.out
+history.c
+out.txt
+proj.c
