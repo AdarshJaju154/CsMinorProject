@@ -1,6 +1,0 @@
-a.out
-hello
-history.c
-out.txt
-proj.c
-temp.txt
