@@ -60,6 +60,7 @@ Sample output file created:
 
 This modification to the shell will allow the output of one command to serve as the input to another using a pipe. Both the ls and less commands will run as separate processes and will communicate using the UNIX pipe() function.
 
-![](media/acc9ea5392ea136927ae39431849afbb.png)
+![image](https://user-images.githubusercontent.com/75697115/199962397-0bdb8fc0-6155-446c-b29d-6c2e4175a56f.png)
 
-![](media/1ccd492402330fcebd3e424817a2f2bc.png)
+![image](https://user-images.githubusercontent.com/75697115/199962390-06caf2a5-5b1a-4bf4-b9ec-b6fc6503abab.png)
+
