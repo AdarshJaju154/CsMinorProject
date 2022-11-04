@@ -11,6 +11,9 @@
 #include <time.h>
 #include <sys/mman.h>
 
+#define MAX_RESOURCES 5
+int available_resources = MAX_RESOURCES;
+
 struct PCB
 {
     PCB *next;
