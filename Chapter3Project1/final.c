@@ -113,6 +113,19 @@ int get_input(char *cmd)
         fprintf(stderr, "input error\n");
         return 0;
     }
+    char *str = buffer;
+    char *parsedArgs[MAX_LINE]={};
+    char **parsed = parsedArgs; 
+    for(int i=0;i<MAX_LINE;i++)
+    {
+        parsed[i]=strsep(&str," ");
+        if(parsed[i]==NULL)
+            break;
+        if(strlen(parsed[i])==0)
+            i--;
+    }
+
+    
     if (strncmp(buffer, "!!", 2) == 0) // if user enter !! then display previous command
     {
         if (strlen(cmd) == 0) // if command length is 0 than no history yet
@@ -122,7 +135,13 @@ int get_input(char *cmd)
         }
         printf("%s", cmd); // command uncanged and print it
     }
-    strcpy(cmd, buffer); // update command
+    else if(strncmp(buffer,"cd",2)==0)
+    {
+
+        chdir(parsed[2]);
+    }
+    strcpy(cmd, buffer);
+     // update command
     return 1;
 }
 
@@ -216,7 +235,7 @@ unsigned ch_redirect(char **args, size_t *size, char **input, char **out)
             args[pos] = args[pos + 1];
             ++pos;
         }
-        --(*size);
+        *size-=1; // ls > content.txt
     }
     return flag;
 }
@@ -342,6 +361,7 @@ int run_cmd(char **args, size_t args_num)
             }
             execvp(args[0], args);
             close_file(flag, input_fd, out_fd);
+            
             fflush(stdin);
         }
     }

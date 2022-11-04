@@ -1,139 +1,147 @@
-/**
- * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- * INTRODUCTION & PURPOSE
- * -------------------------------------------------------------------
- * Create a monitor library fashioned after the slides shown in class.
- * It solves the producer/consumer problem by making sure their
- * execution happens in a safe manner, even across multiple threads
- * by using two semaphores to lock and notify reading and
- * writing operations.
- *
- * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- * USING THE LIBRARY
- * -------------------------------------------------------------------
- * 
- *  if(monitor_Initialized() == 0){
- *    monitor_StartWrite();
- *    + - - - - - - - - - - - +      Your producer/writer code here
- *    |                       |  <<  monitor_StartWrite(); will block  
- *    + - - - - - - - - - - - +      until it is safe to write/produce data.
- *    monitor_EndWrite();
- *  
- *    monitor_StartRead();
- *    + - - - - - - - - - - - +      Your consumer/reader code here
- *    |                       |  <<  monitor_StartRead(); will block
- *    + - - - - - - - - - - - +      until it is safe to consume data
- *    monitor_EndRead();
- *  
- *    monitor_Destroy();
- *  } 
- *
- * - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
- * BUILDING
- * -------------------------------------------------------------------
- * Compilation must be linked with pthread library
- * on pyrite the command should look like the following
- *   cc -o monitor monitor.c -lpthread   
- *
- * For testing purposes there is main(), with the body commented out.
- */
+// https://www.geeksforgeeks.org/use-posix-semaphores-c/
+// https://www.geeksforgeeks.org/semaphores-in-process-synchronization/
+// https://github.com/aitalshashank2/starve-free-reader-writers-problem
 
-#include <unistd.h>
-#include <stdlib.h>
 #include <stdio.h>
-#include <semaphore.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <time.h>
+#include <sys/mman.h>
 
-// Define the data we need to create the monitor
-struct monitor_DataType {
-  sem_t OKtoRead;
-  sem_t OKtoWrite;
-  int readerCount;
-  int isBusyWriting;
-  // The read-queue
-  int readRequested;
-};
-struct monitor_DataType monitor_data; 
-
-// Function that will block until write can start
-void monitor_StartWrite() {
-  if(monitor_data.isBusyWriting || monitor_data.readerCount != 0){
-    sem_wait(&(monitor_data.OKtoWrite));
-  }
-  monitor_data.isBusyWriting++;    // Using 1 as true
+struct ProcessControlBlock
+{
+  int ID;
+  ProcessControlBlock *next;
+  // All the other details of a process that a PCB contains
 }
 
-// Function to signal reading is complete
-void monitor_EndWrite() {
-  monitor_data.isBusyWriting--;
-  if(monitor_data.readRequested){
-    sem_post(&(monitor_data.OKtoRead));
-  } else {
-    sem_post(&(monitor_data.OKtoWrite));
+struct Queue
+{
+
+  ProcessControlBlock *front, *rear;
+
+  Queue()
+  {
+    front = nullptr;
+    rear = nullptr;
   }
-}
 
-// Function that will block until read can start
-void monitor_StartRead() {
-  if(monitor_data.isBusyWriting){
-    monitor_data.readRequested++;
-    sem_wait(&(monitor_data.OKtoRead));
-    monitor_data.readRequested--;
-  }
-  monitor_data.readerCount++;
-  sem_post(&(monitor_data.OKtoRead));
-}
-
-// Function to signal reading is complete
-void monitor_EndRead() {
-  monitor_data.readerCount--;
-  if(monitor_data.readerCount == 0){
-    sem_post(&(monitor_data.OKtoWrite));
-  }
-}
-
-
-// intialize the monitor
-// return's 0 on success, just like sem_init()
-int monitor_Initialized(){  
-    int returnValue = 1;
-
-    // Initialize the structure
-    monitor_data.readerCount = 0;
-    monitor_data.isBusyWriting = 0;
-    monitor_data.readRequested = 0;
-    
-    // initialize the semaphores
-    if(sem_init(&(monitor_data.OKtoWrite), 0, 1) == 0 && 
-       sem_init(&(monitor_data.OKtoRead), 0, 1) == 0){
-        returnValue = 0;
-    } else {
-      printf("Unable to initialize semaphores\n");
+  // Function that pushes a PCB at the rear end of the queue
+  void push(int pID)
+  {
+    ProcessControlBlock *pcb = new ProcessControlBlock();
+    pcb->ID = pID;
+    if (rear == nullptr)
+    {
+      front = pcb;
+      rear = pcb;
     }
-    return returnValue;
-}
+    else
+    {
+      rear->next = pcb;
+      rear = pcb;
+    }
+  }
 
-// Destroys the semphores.
-void monitor_Destroy(){
-  sem_destroy(&(monitor_data.OKtoWrite));
-  sem_destroy(&(monitor_data.OKtoRead));
-}
+  // Function that pops a PCB from the front end of the queue
+  ProcessControlBlock *pop()
+  {
+    if (front == nullptr)
+    {
+      return nullptr;
+    }
+    else
+    {
+      ProcessControlBlock *pcb = front;
+      front = front->next;
+      if (front == nullptr)
+      {
+        rear = nullptr;
+      }
+      return pcb;
+    }
+  }
+};
+struct Mutex
+{
+  int mutex = 1;
+  void wait()
+  {
+    while (mutex == 0)
+      ;
+    mutex--;
+  }
+  void signal()
+  {
+    mutex++;
+  }
+};
 
+struct Semaphore
+{
+  int semaphore = 1; // The actual value of the semaphore
+  Semaphore()
+  {
+    semaphore = 1;
+  }
+  Semaphore(int s)
+  {
+    semaphore = s;
+  }
 
-int main() {
-  // For testing 
-     if(monitor_Initialized() == 0){
-     printf("Initialized\n");
-     
-     monitor_StartWrite();
-     printf("Writing stuffs...\n");
-     monitor_EndWrite();
+  // A queue to store the waiting processes
+  Queue *FIFO = new Queue();
 
-     monitor_StartRead();
-     printf("Reading stuffs...\n");
-     monitor_EndRead();
-     
-     monitor_Destroy();
-   }
-  
-  return 0;
-}
+  // A function to implement the 'wait' functionality of a semaphore
+  void wait(int pID)
+  {
+    semaphore--;
+    // If all resources are busy, push the process into the waiting queue and 'block' it
+    if (semaphore < 0)
+    {
+      FIFO->push(pID);
+      ProcessControlBlock *pcb = FIFO->rear;
+      block(pcb);
+    }
+  }
+
+  // A function to implement the 'signal' functionality of a semaphore
+  void signal()
+  {
+    semaphore++;
+    // If there are any processes waiting for execution, pop from the waiting queue and wake the process up
+    if (semaphore <= 0)
+    {
+      ProcessControlBlock *pcb = FIFO->pop();
+      wakeup(pcb);
+    }
+  }
+};
+
+class Monitor
+{
+private:
+  int count = 0;
+  Mutex mut;
+  Semaphore empty;
+
+public:
+  void increase_count(int count )
+  {
+    mut->wait();
+    count++;
+    mut->signal();
+  }
+  void decrease_count()
+  {
+    mut->wait();
+    while(count<=0)
+      empty->wait(pID);
+    count--;
+    empty->signal();
+    mut->signal();
+  }
+};
