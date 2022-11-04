@@ -23,14 +23,15 @@ A child process is forked and executes the command specified by the user. This w
 execvp(char \*command, char \*params[]).
 
 A sample output for the shell interface is
+![4](https://user-images.githubusercontent.com/75697115/199963430-a7e6dbe2-7837-4fd7-8667-3d4603d2d964.jpg)
 
-**![](media/6f559bd311664d5b7d6f60ea7a413503.png)**
 
 **Creating a History Feature**
 
-The next task is to modify the shell interface program so that it provides a history feature to allow a user to execute the most recent command by entering !!. For example, if a user enters the command ls -l, she can then execute that command again by entering !! at the prompt. ![](media/0c76cb367c00498fe52e4aa3ece67c63.png)
+The next task is to modify the shell interface program so that it provides a history feature to allow a user to execute the most recent command by entering !!. For example, if a user enters the command ls -l, she can then execute that command again by entering !! at the prompt. 
+![2](https://user-images.githubusercontent.com/75697115/199963303-4b9d88c0-9d4b-4d37-9004-a93cd91b94a0.jpg)
+![3](https://user-images.githubusercontent.com/75697115/199963318-ae2877a3-8f2a-4e8b-b08b-8b536cfd19be.jpg)
 
-**![](media/6f4e84cb7ce25657e15d20ecd3675b74.png)**
 
 **Redirecting Input and Output**
 
@@ -53,8 +54,7 @@ dup2(fd, STDOUT FILENO);
 duplicates fd to standard output (the terminal).
 
 Sample output file created:
-
-**![](media/e0dc5df3a91065c7316b0d23e71fdd53.png)**
+![1](https://user-images.githubusercontent.com/75697115/199963110-c60312dd-ea17-497d-b22f-c724c2525261.jpg)
 
 **Communication via a Pipe**
 
