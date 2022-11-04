@@ -11,6 +11,7 @@
 #include <time.h>
 #include <sys/mman.h>
 
+#define max_resources 10
 struct ProcessControlBlock
 {
   int ID;
@@ -121,26 +122,31 @@ struct Semaphore
   }
 };
 
-class Monitor
+struct Monitor
 {
-private:
-  int count = 0;
+  int available_resources = max_resources;
+  int count;
   Mutex mut;
   Semaphore empty;
 
-public:
-  void increase_count(int count )
+  Monitor(int x)
+  {
+    count = x;
+  }
+
+  void increase_count()
   {
     mut->wait();
-    count++;
+    available_resources += count;
     mut->signal();
   }
+
   void decrease_count()
   {
     mut->wait();
-    while(count<=0)
+    while (available_resources < count)
       empty->wait(pID);
-    count--;
+    available_resources -= count;
     empty->signal();
     mut->signal();
   }
